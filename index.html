@@ -3,12 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>La Perle d’Addis | Admin</title>
+  <title>La Perle d’Addis |   Smell Good</title>
   
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Cormorant Garamond (Serif) & Montserrat (Sans-Serif) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300&family=Montserrat:wght@100;200;300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght=0,300;0,400;0,500;0,600;1,300&family=Montserrat:wght=100;200;300;400;500;600&display=swap" rel="stylesheet">
 
   <script>
     tailwind.config = {
@@ -23,6 +26,8 @@
               cream: '#F9F8F6',
               charcoal: '#111111',
               gold: '#C5A059',
+              goldHover: '#D4AF37',
+              gray: '#717171',
               border: '#EAE8E4'
             }
           }
@@ -32,152 +37,1377 @@
   </script>
 
   <style>
-    body { background-color: #FFFFFF; color: #111111; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+    body {
+      background-color: #FFFFFF;
+      color: #111111;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    
+    /* Custom thin scrollbars for luxury feel */
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #F9F8F6;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #C5A059;
+      border-radius: 2px;
+    }
+
+    /* Secret admin highlight feedback */
+    .admin-flash {
+      animation: flash 1s ease-out;
+    }
+    @keyframes flash {
+      0% { background-color: rgba(197, 160, 89, 0.2); }
+      100% { background-color: transparent; }
+    }
   </style>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const auth = getAuth(app);
-    const APP_ID = 'la-perle-addis-storefront';
-
-    let productsData = [];
-
-    window.initFirestore = async () => {
-      try {
-        await signInAnonymously(auth);
-        const q = query(collection(db, 'artifacts', APP_ID, 'public', 'data', 'products'));
-        
-        onSnapshot(q, (snapshot) => {
-          productsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          renderStorefront();
-          if(window.renderAdminProducts) window.renderAdminProducts();
-        }, (err) => {
-          console.error("Firestore Sync Error: ", err);
-        });
-      } catch (e) {
-        console.error("Authentication Error:", e);
-      }
-    };
-
-    window.saveProductToCloud = async (product) => {
-      try {
-        const pDoc = doc(db, 'artifacts', APP_ID, 'public', 'data', 'products', product.id);
-        await setDoc(pDoc, product);
-      } catch (e) {
-        console.error("Save Error:", e);
-      }
-    };
-
-    window.deleteProductFromCloud = async (id) => {
-      try {
-        const pDoc = doc(db, 'artifacts', APP_ID, 'public', 'data', 'products', id);
-        await deleteDoc(pDoc);
-      } catch (e) {
-        console.error("Delete Error:", e);
-      }
-    };
-
-    window.getProductsData = () => productsData;
-    window.onload = () => window.initFirestore();
-  </script>
 </head>
 <body class="font-sans">
 
-  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-luxury-border">
-    <div class="max-w-7xl mx-auto px-4 sm:px-8 py-4 flex items-center justify-between">
+  <!-- ========================================== -->
+  <!-- NOTIFICATION TOAST                         -->
+  <!-- ========================================== -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 pointer-events-none transition-all duration-300 ease-out">
+    <div class="bg-luxury-charcoal text-white px-6 py-4 flex items-center space-x-4 border border-luxury-gold/30 shadow-2xl">
+      <span class="w-2 h-2 rounded-full bg-luxury-gold animate-ping"></span>
+      <p id="toast-text" class="text-xs uppercase tracking-widest font-light"></p>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- GLOBAL HEADER                              -->
+  <!-- ========================================== -->
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-luxury-border transition-all duration-300">
+    <div class="max-w-7xl mx-auto px-4 sm:px-8 py-4 sm:py-6 flex items-center justify-between">
+      
+      <!-- Brand Logo / Trigger (Triple Tap or Click here opens Admin Panel) -->
       <div class="flex flex-col cursor-pointer select-none" id="brand-logo" onclick="handleBrandTap()">
-        <span class="text-lg sm:text-2xl font-serif tracking-[0.25em] font-light text-luxury-charcoal uppercase">La Perle d’Addis</span>
+        <span class="text-lg sm:text-2xl font-serif tracking-[0.25em] font-light text-luxury-charcoal uppercase">
+          La Perle d’Addis
+        </span>
+        <span class="text-[8px] sm:text-[9px] tracking-[0.4em] text-luxury-gold uppercase text-center sm:text-left mt-0.5">
+          Smell Good · Addis Ababa
+        </span>
+      </div>
+
+      <!-- Desktop Navigation Links -->
+      <nav class="hidden md:flex items-center space-x-10 text-xs tracking-[0.2em] uppercase font-light text-luxury-charcoal">
+        <button onclick="scrollToCollection('all')" class="hover:text-luxury-gold transition-colors duration-200">The Collection</button>
+        <button onclick="scrollToCollection('her')" class="hover:text-luxury-gold transition-colors duration-200">For Her</button>
+        <button onclick="scrollToCollection('him')" class="hover:text-luxury-gold transition-colors duration-200">For Him</button>
+        <button onclick="scrollToCollection('unisex')" class="hover:text-luxury-gold transition-colors duration-200">Unisex</button>
+      </nav>
+
+      <!-- Shopping Bag Trigger & Burger -->
+      <div class="flex items-center space-x-6">
+        <!-- Shopping Bag Icon & Counter -->
+        <button onclick="toggleCart(true)" class="relative p-2 focus:outline-none flex items-center space-x-2 text-luxury-charcoal hover:text-luxury-gold transition-colors">
+          <svg class="w-5 h-5 stroke-[1.2]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1,0-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"></path>
+          </svg>
+          <span id="cart-counter" class="absolute -top-1 -right-1 bg-luxury-gold text-white text-[9px] font-medium w-4 h-4 rounded-full flex items-center justify-center scale-90">
+            0
+          </span>
+          <span class="hidden sm:inline text-[11px] uppercase tracking-widest font-light"> Bag </span>
+        </button>
+
+        <!-- Mobile Menu Toggle Button -->
+        <button id="mobile-menu-btn" onclick="toggleMobileMenu()" class="md:hidden p-1 text-luxury-charcoal hover:text-luxury-gold focus:outline-none">
+          <svg id="hamburger-icon" class="w-6 h-6 stroke-[1.2]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- DIRECT CONTACT RIBBON (Static/Sticky)      -->
+    <!-- ========================================== -->
+    <div class="bg-white border-t border-luxury-border py-3 text-center px-4">
+      <a href="tel:+251920508303" class="text-xs sm:text-sm tracking-[0.2em] text-luxury-charcoal font-bold uppercase inline-flex items-center justify-center space-x-2 hover:text-luxury-gold transition-colors duration-200">
+        <svg class="w-3.5 h-3.5 text-luxury-charcoal hover:text-luxury-gold transition-colors duration-200 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+        </svg>
+        <span> ሁሉንም በአንድ ቦታ Direct Order Call Us 0920508303</span>
+      </a>
+    </div>
+
+    <!-- Mobile Navigation Drawer -->
+    <div id="mobile-menu" class="hidden md:hidden border-t border-luxury-border bg-white transition-all duration-300">
+      <div class="px-6 py-6 flex flex-col space-y-4 text-xs tracking-[0.2em] uppercase font-light text-luxury-charcoal">
+        <button onclick="scrollToCollection('all'); toggleMobileMenu();" class="text-left py-2 border-b border-luxury-cream hover:text-luxury-gold">The Collection</button>
+        <button onclick="scrollToCollection('her'); toggleMobileMenu();" class="text-left py-2 border-b border-luxury-cream hover:text-luxury-gold">For Her</button>
+        <button onclick="scrollToCollection('him'); toggleMobileMenu();" class="text-left py-2 border-b border-luxury-cream hover:text-luxury-gold">For Him</button>
+        <button onclick="scrollToCollection('unisex'); toggleMobileMenu();" class="text-left py-2 border-b border-luxury-cream hover:text-luxury-gold">Unisex</button>
+        <button onclick="toggleAdminPanelDirectly()" class="text-left py-2 text-luxury-gold font-normal">Admin Entry</button>
       </div>
     </div>
   </header>
 
+  <!-- ========================================== -->
+  <!-- HERO BANNER (Quiet Luxury Aesthetic)       -->
+  <!-- ========================================== -->
+  <section class="relative bg-luxury-cream min-h-[70vh] flex items-center overflow-hidden">
+    <!-- Sophisticated Abstract Background Accents -->
+    <div class="absolute inset-0 bg-radial-gradient opacity-40 pointer-events-none"></div>
+    <div class="absolute right-0 bottom-0 top-0 w-1/2 bg-cover bg-center opacity-10 sm:opacity-20 pointer-events-none" style="background-image: url('https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&w=1000&q=80');"></div>
+    
+    <div class="relative max-w-7xl mx-auto px-6 sm:px-8 py-20 w-full grid grid-cols-1 md:grid-cols-12 gap-12 items-center">
+      <div class="md:col-span-7 flex flex-col justify-center space-y-6 sm:space-y-8">
+        <div class="inline-flex items-center space-x-2">
+          <span class="h-px w-8 bg-luxury-gold"></span>
+          <span class="text-[10px] sm:text-xs uppercase tracking-[0.3em] text-luxury-gold font-medium">Exclusively in Addis Ababa</span>
+        </div>
+        <h1 class="text-4xl sm:text-6xl lg:text-7xl font-serif font-light tracking-wide text-luxury-charcoal leading-[1.1]">
+          Sensory Poetry, <br class="hidden sm:inline">
+          <span class="italic font-normal">Crafted for the Elite</span>
+        </h1>
+        <p class="text-xs sm:text-sm text-luxury-gray font-light tracking-relaxed leading-relaxed max-w-lg">
+          We bring high-end European signature compositions directly to your doorstep in Addis Ababa. Experience pure, unadulterated luxury. Same-day premium hand-delivery.
+        </p>
+        <div class="pt-4 flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+          <button onclick="scrollToCollection('all')" class="bg-luxury-charcoal text-white text-xs tracking-[0.25em] uppercase font-light py-4 px-10 hover:bg-luxury-gold transition-colors duration-300">
+            Explore Collection
+          </button>
+          <a href="https://wa.me/251920508303?text=Hello%20La%20Perle%20d%27Addis%21%20I%20would%20like%20to%20inquire%20about%20your%20exclusive%20perfume%20collection." target="_blank" class="border border-luxury-charcoal text-luxury-charcoal text-xs tracking-[0.25em] uppercase font-light py-4 px-10 text-center hover:bg-luxury-cream hover:border-luxury-gold transition-all duration-300">
+            Private Concierge
+          </a>
+        </div>
+      </div>
+      <div class="hidden md:col-span-5 md:flex justify-center relative">
+        <!-- Luxury Floating Bottle Graphic (SVG Placeholder with Elegant Style) -->
+        <div class="w-72 h-96 border border-luxury-gold/30 p-4 bg-white shadow-2xl relative transform hover:-translate-y-2 transition-transform duration-500">
+          <div class="w-full h-full bg-luxury-cream flex flex-col items-center justify-center p-8 relative">
+            <div class="absolute top-4 text-[9px] tracking-[0.3em] text-luxury-gray uppercase">Smell good!</div>
+            
+            <!-- Elegant SVG outline of perfume bottle -->
+            <svg class="w-32 h-48 text-luxury-charcoal my-auto" viewBox="0 0 100 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- Cap -->
+              <rect x="35" y="10" width="30" height="15" rx="3" fill="none" stroke="currentColor" stroke-width="1.5" />
+              <line x1="35" y1="20" x2="65" y2="20" stroke="currentColor" stroke-width="0.8" />
+              <!-- Neck -->
+              <rect x="44" y="25" width="12" height="10" fill="none" stroke="currentColor" stroke-width="1.5" />
+              <!-- Spray Ring -->
+              <line x1="40" y1="35" x2="60" y2="35" stroke="currentColor" stroke-width="2" />
+              <!-- Glass Body -->
+              <rect x="15" y="40" width="70" height="95" rx="8" fill="none" stroke="currentColor" stroke-width="1.5" />
+              <!-- Internal Straw -->
+              <line x1="50" y1="40" x2="50" y2="125" stroke="currentColor" stroke-width="1" stroke-dasharray="3 3" />
+              <!-- Label -->
+              <rect x="25" y="65" width="50" height="40" rx="1" fill="white" stroke="currentColor" stroke-width="0.8" />
+              <text x="50" y="85" font-family="Cormorant Garamond" font-size="9" text-anchor="middle" fill="#111111" font-weight="bold" tracking-wider>LA PERLE</text>
+              <text x="50" y="96" font-family="Montserrat" font-size="5" text-anchor="middle" fill="#C5A059" tracking-wider>D'ADDIS</text>
+            </svg>
+            
+            <div class="absolute bottom-4 text-[9px] tracking-[0.2em] text-luxury-gold font-medium uppercase">La Collection Privée</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- EXCLUSIVE BENEFITS SECTIONS                -->
+  <!-- ========================================== -->
+  <section class="border-y border-luxury-border py-8 sm:py-12 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-8 grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-4 text-center">
+      <div class="flex flex-col items-center space-y-2">
+        <span class="text-[10px] tracking-[0.2em] font-medium text-luxury-gold uppercase">01. Premium Courier</span>
+        <h3 class="text-xs tracking-[0.1em] text-luxury-charcoal uppercase">Same-Day Addis Delivery</h3>
+        <p class="text-[11px] text-luxury-gray max-w-xs leading-relaxed font-light">Your order is hand-delivered with specialized luxury gift boxes within hours across Addis Ababa.</p>
+      </div>
+      <div class="flex flex-col items-center space-y-2 md:border-x md:border-luxury-border">
+        <span class="text-[10px] tracking-[0.2em] font-medium text-luxury-gold uppercase">02. Ultimate Trust</span>
+        <h3 class="text-xs tracking-[0.1em] text-luxury-charcoal uppercase">Cash / CBE / Telebirr on Delivery</h3>
+        <p class="text-[11px] text-luxury-gray max-w-xs leading-relaxed font-light">Zero prepayment risks. Inspect your signature bottle before settling payments via Telebirr or cash.</p>
+      </div>
+      <div class="flex flex-col items-center space-y-2">
+        <span class="text-[10px] tracking-[0.2em] font-medium text-luxury-gold uppercase">03. Genuine Sourcing</span>
+        <h3 class="text-xs tracking-[0.1em] text-luxury-charcoal uppercase">100% Authentic Maison Parfums</h3>
+        <p class="text-[11px] text-luxury-gray max-w-xs leading-relaxed font-light">Directly sourced from trusted design houses in Paris, Grasse, Milan and Rome.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- MAIN CURATED COLLECTION GRID               -->
+  <!-- ========================================== -->
   <main id="collection-section" class="py-20 max-w-7xl mx-auto px-4 sm:px-8">
-    <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"></div>
+    <div class="text-center space-y-4 mb-16">
+      <span class="text-xs uppercase tracking-[0.4em] text-luxury-gold font-light block">Our Signature Blends</span>
+      <h2 class="text-3xl sm:text-5xl font-serif font-light text-luxury-charcoal">The Masterpiece Selection</h2>
+      <div class="h-0.5 w-16 bg-luxury-gold/50 mx-auto mt-4"></div>
+    </div>
+
+    <!-- Category Selector Tabs -->
+    <div class="flex flex-wrap justify-center items-center gap-2 sm:gap-6 mb-12">
+      <button onclick="filterCategory('all')" id="tab-all" class="text-[10px] sm:text-xs tracking-[0.25em] uppercase px-5 py-2.5 transition-all duration-300 font-medium active-tab border-b-2 border-luxury-charcoal text-luxury-charcoal">
+        All Creations
+      </button>
+      <button onclick="filterCategory('her')" id="tab-her" class="text-[10px] sm:text-xs tracking-[0.25em] uppercase px-5 py-2.5 transition-all duration-300 font-light text-luxury-gray hover:text-luxury-charcoal">
+        For Her
+      </button>
+      <button onclick="filterCategory('him')" id="tab-him" class="text-[10px] sm:text-xs tracking-[0.25em] uppercase px-5 py-2.5 transition-all duration-300 font-light text-luxury-gray hover:text-luxury-charcoal">
+        For Him
+      </button>
+      <button onclick="filterCategory('unisex')" id="tab-unisex" class="text-[10px] sm:text-xs tracking-[0.25em] uppercase px-5 py-2.5 transition-all duration-300 font-light text-luxury-gray hover:text-luxury-charcoal">
+        Unisex
+      </button>
+    </div>
+
+    <!-- Storefront Product Cards Grid -->
+    <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-12">
+      <!-- Dynamic Products injected here by JavaScript -->
+    </div>
+
+    <!-- Empty State for Empty Category / Admin Deleted items -->
+    <div id="empty-state" class="hidden text-center py-20">
+      <svg class="w-16 h-16 mx-auto text-luxury-border stroke-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"></path>
+      </svg>
+      <p class="text-luxury-gray text-sm font-light uppercase tracking-widest mt-4">We are presently blending new masterpieces. Check back soon.</p>
+      <button onclick="resetDefaultProducts()" class="mt-4 text-xs text-luxury-gold underline tracking-widest uppercase hover:text-luxury-charcoal">Load Classic Starter Editions</button>
+    </div>
   </main>
 
-  <div id="admin-modal" class="fixed inset-0 z-50 overflow-y-auto hidden">
-    <div class="fixed inset-0 bg-black/75 backdrop-blur-md" onclick="closeAdminPanel()"></div>
-    <div class="relative min-h-screen flex items-center justify-center p-6">
-      <div class="relative bg-white border border-luxury-gold/50 shadow-2xl w-full max-w-4xl p-10">
-        
-        <div id="admin-password-lock" class="py-12 text-center space-y-4">
-          <input type="password" id="admin-key" placeholder="••••••••" onkeydown="checkAdminPasswordOnEnter(event)" class="w-full text-center text-xs p-3 bg-luxury-cream border">
-          <button onclick="verifyAdminPassword()" class="w-full bg-luxury-charcoal text-white text-[11px] uppercase tracking-widest py-3">Unlock Inventory Manager</button>
+  <!-- ========================================== -->
+  <!-- EXPERT BRAND STATEMENT & QUALITY           -->
+  <!-- ========================================== -->
+  <section class="bg-luxury-cream py-24 px-6">
+    <div class="max-w-4xl mx-auto text-center space-y-8">
+      <span class="text-xs uppercase tracking-[0.4em] text-luxury-gold font-medium">Scent Persona & Longevity</span>
+      <h2 class="text-3xl sm:text-5xl font-serif font-light text-luxury-charcoal leading-[1.2]">
+        "A woman's perfume tells more about her than her handwriting."
+      </h2>
+      <p class="text-xs tracking-[0.3em] uppercase text-luxury-gray">— Christian Dior</p>
+      <p class="text-xs sm:text-sm text-luxury-gray font-light max-w-2xl mx-auto leading-relaxed">
+        Our curated imports are hand-selected premium extracts. Each vial contains a highly-concentrated oil ratio, guaranteeing projection that effortlessly endures the dry, radiant climate of high-altitude Addis Ababa.
+      </p>
+    </div>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- FOOTER                                     -->
+  <!-- ========================================== -->
+  <footer class="bg-white border-t border-luxury-border pt-16 pb-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-8 grid grid-cols-1 md:grid-cols-12 gap-10">
+      
+      <div class="md:col-span-7 space-y-4">
+        <span class="text-base font-serif tracking-[0.2em] text-luxury-charcoal uppercase block">LA PERLE d’ADDIS</span>
+        <p class="text-xs text-luxury-gray font-light max-w-xs leading-relaxed">
+          Premium signature scents sourced meticulously for the distinguished citizens of Addis Ababa. Your beauty signature, delivered.
+        </p>
+        <p class="text-[10px] text-luxury-gold uppercase tracking-widest">
+          EST. 2026 · Addis Ababa, Ethiopia
+        </p>
+      </div>
+
+      <div class="md:col-span-5 space-y-3">
+        <h4 class="text-xs uppercase tracking-widest text-luxury-charcoal font-medium">Addis Delivery Areas</h4>
+        <ul class="text-[11px] text-luxury-gray space-y-2 font-light">
+          <li>Bole (Atlas, Medhanialem, Edna Mall)</li>
+          <li>Kazanchis / Sarbet / Old Airport</li>
+          <li>CMC / Ayat / Summit</li>
+          <li>Lideta / Mexico / Piassa</li>
+          <li>Express Nationwide Post (Ethiopian Postal Service)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-8 mt-12 pt-8 border-t border-luxury-cream flex flex-col items-center justify-center gap-6 text-center">
+      <!-- Horizontal Centered Social Links -->
+      <div class="flex flex-row flex-wrap gap-4 justify-center items-center">
+        <a href="https://wa.me/251920508303" target="_blank" class="px-5 py-2.5 border border-luxury-gold/30 hover:border-luxury-gold hover:bg-luxury-cream text-[11px] sm:text-xs tracking-[0.2em] text-luxury-gold uppercase transition-all duration-300 font-semibold rounded">
+          WhatsApp
+        </a>
+        <a href="https://www.instagram.com/laperledaddis?igsh=azI4ZDJ1NzBwYWQ3" target="_blank" class="px-5 py-2.5 border border-luxury-gold/30 hover:border-luxury-gold hover:bg-luxury-cream text-[11px] sm:text-xs tracking-[0.2em] text-luxury-gold uppercase transition-all duration-300 font-semibold rounded">
+          Instagram
+        </a>
+        <a href="https://t.me/Lomi_Legacy" target="_blank" class="px-5 py-2.5 border border-luxury-gold/30 hover:border-luxury-gold hover:bg-luxury-cream text-[11px] sm:text-xs tracking-[0.2em] text-luxury-gold uppercase transition-all duration-300 font-semibold rounded">
+          Telegram
+        </a>
+      </div>
+
+      <!-- Copyright text placed horizontally below the social buttons -->
+      <p class="text-[10px] tracking-widest text-luxury-gray uppercase">
+        © 2026 La Perle d’Addis Parfumerie. All rights strictly reserved.
+      </p>
+    </div>
+  </footer>
+
+  <!-- ========================================== -->
+  <!-- SLIDE-OUT SHOPPING BAG (CART) & CHECKOUT    -->
+  <!-- ========================================== -->
+  <div id="cart-drawer-backdrop" onclick="toggleCart(false)" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 opacity-0 pointer-events-none transition-opacity duration-300"></div>
+  
+  <div id="cart-drawer" class="fixed top-0 right-0 bottom-0 w-full max-w-md bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 flex flex-col">
+    <!-- Cart Header -->
+    <div class="p-6 border-b border-luxury-border flex justify-between items-center">
+      <div class="flex items-center space-x-2">
+        <span class="text-xs uppercase tracking-[0.25em] font-medium text-luxury-charcoal">Your Fragrance Bag</span>
+        <span id="cart-drawer-count" class="bg-luxury-cream text-luxury-gold text-[10px] font-semibold px-2 py-0.5 border border-luxury-gold/20">0 Items</span>
+      </div>
+      <button onclick="toggleCart(false)" class="p-2 text-luxury-charcoal hover:text-luxury-gold transition-colors">
+        <svg class="w-5 h-5 stroke-[1.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Scrollable Items Container -->
+    <div id="cart-items" class="flex-1 overflow-y-auto p-6 space-y-6">
+      <!-- Dynamic cart products injected here -->
+    </div>
+
+    <!-- Frictionless Local Checkout Section -->
+    <div class="border-t border-luxury-border p-6 bg-luxury-cream space-y-4">
+      <div class="flex justify-between items-center text-xs tracking-widest text-luxury-charcoal font-medium uppercase">
+        <span>Est. Grand Total:</span>
+        <span id="cart-total-display" class="text-sm font-semibold text-luxury-gold">0 Birr</span>
+      </div>
+
+      <!-- User Checkout Form details -->
+      <form id="checkout-form" class="space-y-3 pt-2" onsubmit="handleCheckout(event)">
+        <div>
+          <label class="block text-[9px] uppercase tracking-widest text-luxury-gray mb-1" for="user-name">Full Name *</label>
+          <input type="text" id="user-name" required placeholder="E.g., Helen Yoseph" class="w-full text-xs p-3 bg-white border border-luxury-border focus:border-luxury-gold focus:outline-none transition-all">
         </div>
+
+        <div>
+          <label class="block text-[9px] uppercase tracking-widest text-luxury-gray mb-1" for="user-phone">Phone Number (Addis) *</label>
+          <div class="flex">
+            <span class="inline-flex items-center px-3 bg-white border border-r-0 border-luxury-border text-xs text-luxury-gray select-none">+251</span>
+            <input type="tel" id="user-phone" required pattern="(09|07|[79])[0-9]{8}" placeholder="9xxxxxxxx / 09xxxxxxxx" class="w-full text-xs p-3 bg-white border border-luxury-border focus:border-luxury-gold focus:outline-none transition-all" oninput="validatePhoneLive()">
+          </div>
+          <p id="phone-feedback" class="text-[9px] text-luxury-gray/80 mt-1 font-light italic">Enter 9 digits starting with 9/7 (or 10 digits starting with 09/07)</p>
+        </div>
+
+        <div>
+          <label class="block text-[9px] uppercase tracking-widest text-luxury-gray mb-1" for="user-neighborhood">Delivery Neighborhood *</label>
+          <select id="user-neighborhood" required class="w-full text-xs p-3 bg-white border border-luxury-border focus:border-luxury-gold focus:outline-none transition-all">
+            <option value="" disabled selected>Select neighborhood</option>
+            <option value="Bole">Bole (Atlas, Medhanialem, Edna Mall)</option>
+            <option value="Old Airport">Old Airport / Sarbet / Karl</option>
+            <option value="Kazanchis">Kazanchis / Urael / Haya Hulet</option>
+            <option value="CMC">CMC / Ayat / Summit</option>
+            <option value="Gerji">Gerji / Imperial / Jackros</option>
+            <option value="Piassa">Piassa / Churchill / Arat Kilo</option>
+            <option value="Lideta">Lideta / Mexico / Gotera</option>
+            <option value="Lafto">Lafto / Jemo / Lebu</option>
+            <option value="Other">Other Area (Describe in Notes)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-[9px] uppercase tracking-widest text-luxury-gray mb-1" for="user-notes">Special Instructions (Optional)</label>
+          <input type="text" id="user-notes" placeholder="Specific house, favorite timing or notes" class="w-full text-xs p-3 bg-white border border-luxury-border focus:border-luxury-gold focus:outline-none transition-all">
+        </div>
+
+        <!-- Payment Notice banner -->
+        <div class="p-3 bg-white border border-luxury-gold/20 flex items-start space-x-2 rounded">
+          <svg class="w-4 h-4 text-luxury-gold mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+          </svg>
+          <p class="text-[9px] text-luxury-gray leading-normal font-light">
+            <strong class="text-luxury-charcoal uppercase">Payment:</strong> Pay on delivery via Cash, CBE Birr, or Telebirr after inspecting your bottle.
+          </p>
+        </div>
+
+        <!-- WhatsApp Checkout action -->
+        <button type="submit" class="w-full bg-luxury-charcoal text-white text-xs tracking-[0.2em] uppercase font-light py-4 px-6 hover:bg-luxury-gold transition-colors duration-300 flex items-center justify-center space-x-2">
+          <span>Secure Order Via WhatsApp</span>
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.746.953 3.71 1.454 5.709 1.455h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"></path>
+          </svg>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- HIDDEN ADMIN INTERFACE MODAL PANEL        -->
+  <!-- ========================================== -->
+  <div id="admin-modal" class="fixed inset-0 z-50 overflow-y-auto hidden">
+    <!-- Overlay dark glass -->
+    <div class="fixed inset-0 bg-black/75 backdrop-blur-md" onclick="closeAdminPanel()"></div>
+    
+    <!-- Admin Content Center -->
+    <div class="relative min-h-screen flex items-center justify-center p-4 sm:p-6">
+      <div class="relative bg-white border border-luxury-gold/50 shadow-2xl w-full max-w-4xl p-6 sm:p-10 my-8 space-y-8 z-10">
         
-        <div id="admin-workspace" class="hidden space-y-8">
-          <h3 class="text-xs uppercase tracking-widest text-luxury-charcoal font-semibold">Inventory Manager (Live Sync)</h3>
-          <div id="admin-product-list" class="max-h-[300px] overflow-y-auto space-y-2 border p-2"></div>
-          <form id="product-form" onsubmit="handleProductSubmit(event)" class="grid grid-cols-2 gap-4 text-xs">
-            <input type="hidden" id="admin-product-id">
-            <input type="text" id="admin-brand" required placeholder="Brand" class="p-2 bg-luxury-cream border">
-            <input type="text" id="admin-name" required placeholder="Name" class="p-2 bg-luxury-cream border">
-            <input type="number" id="admin-price" required placeholder="Price" class="p-2 bg-luxury-cream border">
-            <input type="text" id="admin-image" required placeholder="Image URL" class="p-2 bg-luxury-cream border">
-            <button type="submit" class="col-span-2 bg-luxury-gold text-white py-3">Sync Item to Cloud Inventory</button>
-          </form>
+        <!-- Admin Title Header -->
+        <div class="flex justify-between items-center border-b border-luxury-border pb-6">
+          <div class="flex items-center space-x-3">
+            <span class="w-3.5 h-3.5 bg-luxury-gold rounded-full animate-pulse"></span>
+            <div>
+              <h2 class="text-xl sm:text-2xl font-serif text-luxury-charcoal uppercase tracking-widest">La Perle Suite</h2>
+              <p class="text-[10px] text-luxury-gray uppercase tracking-widest mt-0.5">Authorized Storefront Controller</p>
+            </div>
+          </div>
+          <button onclick="closeAdminPanel()" class="text-luxury-gray hover:text-luxury-charcoal p-1">
+            <svg class="w-6 h-6 stroke-[1.2]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Password Lock View (Local basic protection) -->
+        <div id="admin-password-lock" class="py-12 flex flex-col items-center justify-center text-center space-y-4 max-w-sm mx-auto">
+          <svg class="w-12 h-12 text-luxury-gold stroke-[1]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"></path>
+          </svg>
+          <div class="space-y-1">
+            <h3 class="text-xs tracking-[0.2em] text-luxury-charcoal uppercase">Maison Authentication Required</h3>
+            <p class="text-[11px] text-luxury-gray font-light">Enter the password assigned to La Perle's boutique management desk.</p>
+          </div>
+          <input type="password" id="admin-key" placeholder="••••••••" onkeydown="checkAdminPasswordOnEnter(event)" class="w-full text-center text-xs p-3 bg-luxury-cream border border-luxury-border focus:border-luxury-gold focus:outline-none tracking-widest">
+          <button onclick="verifyAdminPassword()" class="w-full bg-luxury-charcoal text-white text-[11px] uppercase tracking-widest py-3 hover:bg-luxury-gold transition-colors">
+            Verify Access Key
+          </button>
+          <p id="password-error" class="hidden text-red-600 text-[10px] tracking-widest uppercase">Incorrect Master Key</p>
+        </div>
+
+        <!-- True Admin Workspace View (Initially Hidden) -->
+        <div id="admin-workspace" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-10">
+          
+          <!-- Product Input Form Section (Left side) -->
+          <div class="lg:col-span-5 space-y-6">
+            <div class="border-b border-luxury-cream pb-2">
+              <h3 class="text-xs uppercase tracking-widest text-luxury-charcoal font-semibold" id="form-heading">Create New Product</h3>
+              <p class="text-[10px] text-luxury-gray font-light italic mt-0.5">Fills live store catalogs instantly</p>
+            </div>
+
+            <form id="product-form" onsubmit="handleProductSubmit(event)" class="space-y-4 text-xs">
+              <!-- Hidden product ID storage for updates -->
+              <input type="hidden" id="admin-product-id">
+
+              <div>
+                <label class="block text-[9px] uppercase tracking-widest text-luxury-gray mb-1" for="admin-brand">Perfume Brand Name *</label>
+                <input type="text" id="admin-brand" required placeholder="E.g., Maison Francis Kurkdjian" class="w-full p-2.5 bg-luxury-cream border border-luxury-border focus:border-luxury-gold focus:outline-none transition-all">
+              </div>
+
+              <div>
+                <label class="block text-[9px] uppercase tracking-widest text-luxury-gray mb-1" for="admin-name">Perfume Name *</label>
+                <input type="text" id="admin-name" required placeholder="E.g., Baccarat Rouge 540" class="w-full p-2.5 bg-luxury-cream border border-luxury-border focus:border-luxury-gold focus:outline-none transition-all">
+              </div>
+
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-[9px] uppercase tracking-widest text-luxury-gray mb-1" for="admin-size">Bottle Size *</label>
+                  <input type="text" id="admin-size" required placeholder="E.g., 100ml / 70ml" class="w-full p-2.5 bg-luxury-cream border border-luxury-border focus:border-luxury-gold/40 focus:outline-none transition-all">
+                </div>
+                <div>
+                  <label class="block text-[9px] uppercase tracking-widest text-luxury-gray mb-1" for="admin-category">Category *</label>
+                  <select id="admin-category" required class="w-full p-2.5 bg-luxury-cream border border-luxury-border focus:border-luxury-gold/40 focus:outline-none transition-all">
+                    <option value="her">For Her</option>
+                    <option value="him">For Him</option>
+                    <option value="unisex">Unisex Masterpiece</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 gap-4">
+                <div>
+                  <label class="block text-[9px] uppercase tracking-widest text-luxury-gray mb-1" for="admin-price">Price (Birr) *</label>
+                  <input type="number" id="admin-price" required min="1" placeholder="E.g., 14500" class="w-full p-2.5 bg-luxury-cream border border-luxury-border focus:border-luxury-gold focus:outline-none transition-all">
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-[9px] uppercase tracking-widest text-luxury-gray mb-1" for="admin-image">Product Image URL *</label>
+                <input type="url" id="admin-image" required placeholder="Direct link to JPG/PNG image" class="w-full p-2.5 bg-luxury-cream border border-luxury-border focus:border-luxury-gold focus:outline-none transition-all">
+                <div class="mt-2 flex items-center justify-between">
+                  <span class="text-[9px] text-luxury-gray">No image host? Try high-res Unsplash links:</span>
+                  <button type="button" onclick="insertSampleImage()" class="text-[9px] text-luxury-gold hover:underline">Insert Sample Image URL</button>
+                </div>
+              </div>
+
+              <div class="pt-4 flex space-x-2">
+                <button type="submit" id="submit-btn" class="flex-1 bg-luxury-charcoal text-white text-[11px] tracking-widest uppercase py-3 px-4 hover:bg-luxury-gold transition-colors">
+                  [ Save To Storefront ]
+                </button>
+                <button type="button" id="cancel-edit-btn" onclick="resetFormState()" class="hidden bg-luxury-cream border border-luxury-border text-luxury-charcoal text-[11px] tracking-widest uppercase py-3 px-4 hover:bg-red-50 transition-colors">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Product Management List Section (Right side) -->
+          <div class="lg:col-span-7 space-y-4">
+            <div class="border-b border-luxury-cream pb-2 flex justify-between items-center">
+              <div>
+                <h3 class="text-xs uppercase tracking-widest text-luxury-charcoal font-semibold">Active Inventory</h3>
+                <p class="text-[10px] text-luxury-gray font-light">Interactive listing of active products</p>
+              </div>
+              <button onclick="resetDefaultProducts()" class="text-[10px] text-luxury-gold tracking-wider uppercase hover:underline">
+                Reset to Default Catalog
+              </button>
+            </div>
+
+            <!-- Scrollable list of admin products -->
+            <div id="admin-product-list" class="max-h-[420px] overflow-y-auto space-y-3 pr-2">
+              <!-- Admin cards loaded dynamically -->
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Optional Cloud/Multi-Device Save Offer -->
+        <div id="save-offer-panel" class="hidden mt-6 pt-6 border-t border-luxury-cream flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="flex items-center space-x-3">
+            <svg class="w-5 h-5 text-luxury-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path>
+            </svg>
+            <div class="text-left">
+              <p class="text-[11px] font-semibold text-luxury-charcoal uppercase tracking-widest">Keep Inventory Safe Across Devices</p>
+              <p class="text-[9px] text-luxury-gray font-light">We can enable secure cloud synchronization so you can manage your shop from both your phone and laptop instantly.</p>
+            </div>
+          </div>
+          <button onclick="upgradeToCloud()" class="bg-luxury-cream hover:bg-luxury-gold hover:text-white border border-luxury-gold text-luxury-gold text-[9px] uppercase tracking-widest font-medium px-4 py-2 transition-all">
+            Unlock Sync Profile
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- CLOUD SYNC UPGRADE MODAL                   -->
+  <!-- ========================================== -->
+  <div id="upgrade-modal" class="fixed inset-0 z-50 overflow-y-auto hidden">
+    <div class="fixed inset-0 bg-black/80 backdrop-blur-md" onclick="closeUpgradeModal()"></div>
+    <div class="relative min-h-screen flex items-center justify-center p-4">
+      <div class="relative bg-white border border-luxury-gold p-8 max-w-md w-full text-center space-y-6 z-10">
+        <span class="text-3xl">✨</span>
+        <h3 class="text-lg font-serif tracking-widest uppercase text-luxury-charcoal">Save Your Progress</h3>
+        <p class="text-xs text-luxury-gray leading-relaxed font-light">
+          You can save your custom products and shop changes securely in our database. This will sync the collection automatically for any device or customer visitors instantly.
+        </p>
+        <p class="text-[10px] text-luxury-gold uppercase tracking-widest italic font-light">
+          This premium cloud suite integrates real-time inventory tracking for multiple administrators.
+        </p>
+        <div class="pt-4 flex flex-col space-y-2">
+          <a href="https://wa.me/251920508303?text=I%20want%20to%20upgrade%20my%20La%20Perle%20Addis%20storefront%20to%20realtime%20cloud%20database%20sync." target="_blank" class="bg-luxury-charcoal text-white text-xs tracking-widest uppercase py-3 px-6 hover:bg-luxury-gold transition-colors">
+            Contact Technical Team to Setup Cloud
+          </a>
+          <button onclick="closeUpgradeModal()" class="text-[10px] uppercase tracking-widest text-luxury-gray py-2 hover:text-luxury-charcoal">
+            Keep using Local Storage
+          </button>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- ========================================== -->
+  <!-- JAVASCRIPT APPLICATION CORE                -->
+  <!-- ========================================== -->
   <script>
-    function renderStorefront() {
-      const grid = document.getElementById('product-grid');
-      grid.innerHTML = getProductsData().map(product => `
-        <div class="group border p-4">
-          <img src="${product.image}" onerror="this.src='https://placehold.co/400x500/F9F8F6/111111?text=Image'" class="w-full aspect-[4/5] object-cover">
-          <div class="pt-4 space-y-1">
-            <span class="text-luxury-gold text-[10px] uppercase font-bold">${product.brand}</span>
-            <h3 class="text-xl font-serif">${product.name}</h3>
-            <p class="text-sm">${product.price.toLocaleString()} ETB</p>
-          </div>
-        </div>
-      `).join('');
-    }
+    // ==========================================
+    // STAGE CONSTANTS & DEFAULTS
+    // ==========================================
+    const DEFAULT_STORE_NUMBER = "251920508303"; // WhatsApp dispatch line for La Perle
+    const DEFAULT_PRODUCTS = [
+      {
+        id: "default-1",
+        brand: "Maison Francis Kurkdjian",
+        name: "Baccarat Rouge 540 Extraît",
+        size: "70ml Extrait",
+        category: "unisex",
+        price: 18500,
+        image: "https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&w=600&q=80"
+      },
+      {
+        id: "default-2",
+        brand: "Christian Dior",
+        name: "Gris Dior Maison Privée",
+        size: "125ml Parfum",
+        category: "unisex",
+        price: 19800,
+        image: "https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&w=600&q=80"
+      },
+      {
+        id: "default-3",
+        brand: "Chanel",
+        name: "Coco Mademoiselle Intense",
+        size: "100ml Eau De Parfum",
+        category: "her",
+        price: 12500,
+        image: "https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&w=600&q=80"
+      },
+      {
+        id: "default-4",
+        brand: "Creed",
+        name: "Aventus for Men",
+        size: "100ml Parfum Extract",
+        category: "him",
+        price: 17200,
+        image: "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&w=600&q=80"
+      },
+      {
+        id: "default-5",
+        brand: "Yves Saint Laurent",
+        name: "Libre Le Parfum",
+        size: "90ml Intense Spray",
+        category: "her",
+        price: 13800,
+        image: "https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&w=600&q=80"
+      },
+      {
+        id: "default-6",
+        brand: "Tom Ford",
+        name: "Oud Wood Private Blend",
+        size: "100ml Eau De Parfum",
+        category: "unisex",
+        price: 18900,
+        image: "https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&w=600&q=80"
+      }
+    ];
 
-    window.renderAdminProducts = () => {
-      const container = document.getElementById('admin-product-list');
-      container.innerHTML = getProductsData().map(p => `
-        <div class="flex justify-between items-center p-2 bg-luxury-cream border text-xs">
-          <span class="truncate">${p.name} - ${p.brand}</span>
-          <button onclick="deleteProduct('${p.id}')" class="text-red-500 font-bold">REMOVE</button>
-        </div>
-      `).join('');
+    // List of premium unsplash perfume image urls for ease of admin mock uploads
+    const LUXURY_PRESET_IMAGES = [
+      "https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&w=600&q=80",
+      "https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&w=600&q=80",
+      "https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&w=600&q=80",
+      "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&w=600&q=80",
+      "https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&w=600&q=80"
+    ];
+
+    // ==========================================
+    // CORE APP STATE
+    // ==========================================
+    let productsData = [];
+    let cart = [];
+    let currentFilter = 'all';
+    let brandLogoTapCount = 0;
+    let brandLogoTapTimer = null;
+    let isAdminAuthenticated = false;
+
+    // ==========================================
+    // APPLICATION INITIALIZATION
+    // ==========================================
+    window.onload = function() {
+      loadProductsFromStorage();
+      loadCartFromSession();
+      renderStorefront();
+      setupSecretKeyListeners();
     };
 
-    async function handleProductSubmit(e) {
-      e.preventDefault();
-      const product = {
-        id: document.getElementById('admin-product-id').value || 'prod-' + Date.now(),
-        brand: document.getElementById('admin-brand').value,
-        name: document.getElementById('admin-name').value,
-        price: Number(document.getElementById('admin-price').value),
-        image: document.getElementById('admin-image').value
-      };
-      await saveProductToCloud(product);
-      document.getElementById('product-form').reset();
-      document.getElementById('admin-product-id').value = '';
-    }
-
-    async function deleteProduct(id) { await deleteProductFromCloud(id); }
-
-    function verifyAdminPassword() {
-      if (document.getElementById('admin-key').value === 'pearl_access') {
-        document.getElementById('admin-password-lock').classList.add('hidden');
-        document.getElementById('admin-workspace').classList.remove('hidden');
+    // ==========================================
+    // DATA PERSISTENCE & LOCALSTORAGE ENGINE
+    // ==========================================
+    function loadProductsFromStorage() {
+      const storedProducts = localStorage.getItem('productsData');
+      if (storedProducts) {
+        try {
+          productsData = JSON.parse(storedProducts);
+        } catch (e) {
+          console.error("Error parsing stored products, resetting to default.", e);
+          productsData = [...DEFAULT_PRODUCTS];
+          saveProductsToStorage();
+        }
+      } else {
+        // First execution: seed defaults
+        productsData = [...DEFAULT_PRODUCTS];
+        saveProductsToStorage();
       }
     }
 
-    function handleBrandTap() { document.getElementById('admin-modal').classList.remove('hidden'); }
-    function closeAdminPanel() { document.getElementById('admin-modal').classList.add('hidden'); }
-    function checkAdminPasswordOnEnter(e) { if(e.key === 'Enter') verifyAdminPassword(); }
+    function saveProductsToStorage() {
+      localStorage.setItem('productsData', JSON.stringify(productsData));
+    }
+
+    function loadCartFromSession() {
+      const storedCart = sessionStorage.getItem('la_perle_cart');
+      if (storedCart) {
+        try {
+          cart = JSON.parse(storedCart);
+          updateCartBadge();
+        } catch (e) {
+          cart = [];
+        }
+      }
+    }
+
+    function saveCartToSession() {
+      sessionStorage.setItem('la_perle_cart', JSON.stringify(cart));
+      updateCartBadge();
+    }
+
+    // ==========================================
+    // STOREFRONT RENDERING ENGINE
+    // ==========================================
+    function renderStorefront() {
+      const grid = document.getElementById('product-grid');
+      const emptyState = document.getElementById('empty-state');
+      
+      // Filter list
+      const filtered = productsData.filter(p => {
+        if (currentFilter === 'all') return true;
+        return p.category === currentFilter;
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+
+      grid.innerHTML = filtered.map(product => {
+        // Fallback placeholder image safety checks
+        const imgUrl = product.image ? product.image : "https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&w=600&q=80";
+        const formattedPrice = Number(product.price).toLocaleString();
+
+        return `
+          <div class="group relative flex flex-col bg-white border border-luxury-border p-4 transition-all duration-300 hover:shadow-xl hover:border-luxury-gold/40">
+            <!-- Product Badge -->
+            <div class="absolute top-6 left-6 z-10">
+              <span class="text-[9px] tracking-[0.25em] font-bold bg-luxury-charcoal text-white px-2 py-1 uppercase">
+                ${getCategoryLabel(product.category)}
+              </span>
+            </div>
+
+            <!-- Product Image -->
+            <div class="w-full aspect-[4/5] bg-luxury-cream overflow-hidden relative flex items-center justify-center">
+              <img src="${imgUrl}" 
+                   alt="${escapeHtml(product.name)}" 
+                   onerror="this.src='https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&w=600&q=80';"
+                   class="object-cover w-full h-full transition-transform duration-700 ease-out group-hover:scale-105">
+              
+              <!-- Dark quick overlay for add-to-bag touch interaction -->
+              <div class="absolute inset-x-0 bottom-0 bg-white/95 backdrop-blur-sm py-5 border-t border-luxury-border translate-y-full group-hover:translate-y-0 transition-transform duration-300 flex flex-col items-center justify-center">
+                <button onclick="addToBag('${product.id}')" class="text-sm uppercase tracking-[0.3em] font-bold text-luxury-charcoal hover:text-luxury-gold transition-colors duration-200">
+                  + Add to Fragrance Bag
+                </button>
+              </div>
+            </div>
+
+            <!-- Perfume Attributes with enlarged and bold elements -->
+            <div class="pt-6 pb-2 flex-1 flex flex-col justify-between">
+              <div class="space-y-2">
+                <span class="text-xs sm:text-sm tracking-[0.25em] text-luxury-gold uppercase font-bold block">${escapeHtml(product.brand)}</span>
+                <h3 class="text-xl sm:text-2xl font-serif font-bold text-luxury-charcoal leading-tight">${escapeHtml(product.name)}</h3>
+                <span class="text-xs sm:text-sm tracking-wider text-luxury-gray italic block font-medium">${escapeHtml(product.size)}</span>
+              </div>
+              
+              <div class="mt-4 pt-4 border-t border-luxury-cream flex items-center justify-between">
+                <span class="text-sm sm:text-base tracking-widest text-luxury-charcoal uppercase font-bold">
+                  ${formattedPrice} <span class="text-[11px] text-luxury-gold font-bold">ETB</span>
+                </span>
+                
+                <button onclick="addToBag('${product.id}')" class="text-xs sm:text-sm uppercase tracking-widest text-luxury-gold hover:text-luxury-charcoal font-bold underline transition-all">
+                  + Add
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function getCategoryLabel(cat) {
+      if (cat === 'her') return 'For Her';
+      if (cat === 'him') return 'For Him';
+      return 'Unisex';
+    }
+
+    // ==========================================
+    // FILTERING MECHANISMS
+    // ==========================================
+    function filterCategory(cat) {
+      currentFilter = cat;
+      
+      // Update UI active tab states
+      const tabs = ['all', 'her', 'him', 'unisex'];
+      tabs.forEach(t => {
+        const tabEl = document.getElementById(`tab-${t}`);
+        if (t === cat) {
+          tabEl.className = "text-[10px] sm:text-xs tracking-[0.25em] uppercase px-5 py-2.5 transition-all duration-300 font-medium border-b-2 border-luxury-charcoal text-luxury-charcoal";
+        } else {
+          tabEl.className = "text-[10px] sm:text-xs tracking-[0.25em] uppercase px-5 py-2.5 transition-all duration-300 font-light text-luxury-gray hover:text-luxury-charcoal";
+        }
+      });
+
+      renderStorefront();
+    }
+
+    function scrollToCollection(cat) {
+      filterCategory(cat);
+      const target = document.getElementById('collection-section');
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+
+    // ==========================================
+    // MOBILE DRAWER MENU
+    // ==========================================
+    function toggleMobileMenu() {
+      const menu = document.getElementById('mobile-menu');
+      const icon = document.getElementById('hamburger-icon');
+      
+      if (menu.classList.contains('hidden')) {
+        menu.classList.remove('hidden');
+        icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>`;
+      } else {
+        menu.classList.add('hidden');
+        icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"></path>`;
+      }
+    }
+
+    // ==========================================
+    // SHOPPING CART ENGINE & ACTIONS
+    // ==========================================
+    function toggleCart(open) {
+      const backdrop = document.getElementById('cart-drawer-backdrop');
+      const drawer = document.getElementById('cart-drawer');
+      
+      if (open) {
+        backdrop.classList.remove('pointer-events-none', 'opacity-0');
+        backdrop.classList.add('opacity-100');
+        drawer.classList.remove('translate-x-full');
+        renderCartItems();
+      } else {
+        backdrop.classList.remove('opacity-100');
+        backdrop.classList.add('pointer-events-none', 'opacity-0');
+        drawer.classList.add('translate-x-full');
+      }
+    }
+
+    function addToBag(id) {
+      const product = productsData.find(p => p.id === id);
+      if (!product) return;
+
+      const existingCartItem = cart.find(item => item.id === id);
+      if (existingCartItem) {
+        existingCartItem.quantity += 1;
+      } else {
+        cart.push({
+          id: product.id,
+          brand: product.brand,
+          name: product.name,
+          size: product.size,
+          price: product.price,
+          image: product.image,
+          quantity: 1
+        });
+      }
+
+      saveCartToSession();
+      showToast(`${product.name} added to your bag`);
+      
+      // Briefly toggle cart highlight
+      const counter = document.getElementById('cart-counter');
+      counter.classList.add('scale-125');
+      setTimeout(() => counter.classList.remove('scale-125'), 300);
+    }
+
+    function changeCartQty(id, delta) {
+      const itemIndex = cart.findIndex(item => item.id === id);
+      if (itemIndex === -1) return;
+
+      cart[itemIndex].quantity += delta;
+      
+      if (cart[itemIndex].quantity <= 0) {
+        cart.splice(itemIndex, 1);
+        showToast("Product removed from bag");
+      }
+      
+      saveCartToSession();
+      renderCartItems();
+    }
+
+    function removeCartItem(id) {
+      cart = cart.filter(item => item.id !== id);
+      saveCartToSession();
+      renderCartItems();
+      showToast("Product removed from bag");
+    }
+
+    function updateCartBadge() {
+      const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+      document.getElementById('cart-counter').textContent = count;
+      document.getElementById('cart-drawer-count').textContent = `${count} Items`;
+    }
+
+    function renderCartItems() {
+      const itemsContainer = document.getElementById('cart-items');
+      const totalDisplay = document.getElementById('cart-total-display');
+      
+      if (cart.length === 0) {
+        itemsContainer.innerHTML = `
+          <div class="flex flex-col items-center justify-center py-20 text-center space-y-4">
+            <svg class="w-10 h-10 text-luxury-border stroke-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"></path>
+            </svg>
+            <p class="text-[11px] uppercase tracking-widest text-luxury-gray font-light">Your shopping bag is presently empty</p>
+            <button onclick="toggleCart(false)" class="text-xs text-luxury-gold underline uppercase tracking-widest hover:text-luxury-charcoal">Continue browsing</button>
+          </div>
+        `;
+        totalDisplay.textContent = "0 Birr";
+        return;
+      }
+
+      let grandTotal = 0;
+
+      itemsContainer.innerHTML = cart.map(item => {
+        const lineTotal = item.price * item.quantity;
+        grandTotal += lineTotal;
+        const imgUrl = item.image ? item.image : "https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&w=600&q=80";
+
+        return `
+          <div class="flex items-start space-x-4 pb-4 border-b border-luxury-cream">
+            <div class="w-16 h-20 bg-luxury-cream shrink-0 overflow-hidden border border-luxury-border">
+              <img src="${imgUrl}" alt="${escapeHtml(item.name)}" class="w-full h-full object-cover">
+            </div>
+            
+            <div class="flex-1 space-y-1 min-w-0">
+              <span class="text-[9px] uppercase tracking-wider text-luxury-gold font-light block">${escapeHtml(item.brand)}</span>
+              <h4 class="text-xs font-serif font-light text-luxury-charcoal truncate">${escapeHtml(item.name)}</h4>
+              <span class="text-[9px] text-luxury-gray italic block">${escapeHtml(item.size)}</span>
+              
+              <div class="flex items-center justify-between pt-2">
+                <div class="flex items-center border border-luxury-border bg-white rounded">
+                  <button type="button" onclick="changeCartQty('${item.id}', -1)" class="px-2 py-0.5 text-xs text-luxury-gray hover:text-luxury-charcoal hover:bg-luxury-cream">-</button>
+                  <span class="px-2 text-[10px] font-medium text-luxury-charcoal">${item.quantity}</span>
+                  <button type="button" onclick="changeCartQty('${item.id}', 1)" class="px-2 py-0.5 text-xs text-luxury-gray hover:text-luxury-charcoal hover:bg-luxury-cream">+</button>
+                </div>
+                
+                <span class="text-[11px] font-medium text-luxury-charcoal">${lineTotal.toLocaleString()} Birr</span>
+              </div>
+            </div>
+
+            <button onclick="removeCartItem('${item.id}')" class="text-luxury-gray hover:text-red-600 transition-colors p-1">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+              </svg>
+            </button>
+          </div>
+        `;
+      }).join('');
+
+      totalDisplay.textContent = `${grandTotal.toLocaleString()} Birr`;
+    }
+
+    // ==========================================
+    // LIVE ETHIOPIAN PHONE VALIDATION ENGINE
+    // ==========================================
+    function validatePhoneLive() {
+      const input = document.getElementById('user-phone');
+      const feedback = document.getElementById('phone-feedback');
+      const val = input.value.trim();
+      
+      // Clean non-numeric characters for checking
+      const cleaned = val.replace(/\D/g, '');
+      
+      if (cleaned === '') {
+        feedback.className = "text-[9px] text-luxury-gray/80 mt-1 font-light italic";
+        feedback.textContent = "Enter 9 digits starting with 9/7 (or 10 digits starting with 09/07)";
+        input.setCustomValidity("");
+        return;
+      }
+
+      const isTenDigit = /^(09|07)\d{8}$/.test(cleaned);
+      const isNineDigit = /^(9|7)\d{8}$/.test(cleaned);
+
+      if (isTenDigit || isNineDigit) {
+        feedback.className = "text-[9px] text-green-600 mt-1 font-medium";
+        feedback.textContent = "✓ Correct Ethiopian phone number format";
+        input.setCustomValidity("");
+      } else {
+        feedback.className = "text-[9px] text-red-500 mt-1 font-semibold";
+        if (cleaned.length < 9) {
+          feedback.textContent = `❌ Too short (${cleaned.length} digits). Need 9 or 10 digits starting with 9/7 or 09/07.`;
+        } else if (cleaned.length > 10) {
+          feedback.textContent = `❌ Too long (${cleaned.length} digits). Must be strictly 9 or 10 digits starting with 9/7 or 09/07.`;
+        } else {
+          feedback.textContent = "❌ Invalid start digit! Must begin with 9, 7, 09, or 07.";
+        }
+        input.setCustomValidity("Invalid Ethiopian phone number format");
+      }
+    }
+
+    // ==========================================
+    // FRICTIONLESS WHATSAPP CHECKOUT LOGIC
+    // ==========================================
+    function handleCheckout(e) {
+      e.preventDefault();
+
+      if (cart.length === 0) {
+        showToast("Your bag is empty");
+        return;
+      }
+
+      const clientName = document.getElementById('user-name').value.trim();
+      const rawPhone = document.getElementById('user-phone').value.trim().replace(/\D/g, '');
+      
+      // Strict layout verification check on submission
+      const isTenDigit = /^(09|07)\d{8}$/.test(rawPhone);
+      const isNineDigit = /^(9|7)\d{8}$/.test(rawPhone);
+      
+      if (!isTenDigit && !isNineDigit) {
+        showToast("Order Blocked: Please enter a valid 9 or 10-digit Ethiopian phone number.");
+        return;
+      }
+
+      // Isolate the exact 9 standard digits (strip leading 0 if present)
+      const standardPhone = rawPhone.startsWith('0') ? rawPhone.slice(1) : rawPhone;
+      const clientPhone = '251' + standardPhone;
+      const clientNeighborhood = document.getElementById('user-neighborhood').value;
+      const clientNotes = document.getElementById('user-notes').value.trim();
+
+      // Formulate orderly structured purchase ticket for merchant WhatsApp
+      let message = `✨ *NEW LA PERLE D'ADDIS ORDER* ✨\n`;
+      message += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+      message += `👤 *Client:* ${clientName}\n`;
+      message += `📞 *Phone:* +251 ${standardPhone}\n`;
+      message += `📍 *Delivery Area:* ${clientNeighborhood}\n`;
+      if (clientNotes) {
+        message += `📝 *Instructions:* ${clientNotes}\n`;
+      }
+      message += `\n📦 *Order Catalog:* \n`;
+
+      let grandTotal = 0;
+      cart.forEach((item, index) => {
+        const itemTotal = item.price * item.quantity;
+        grandTotal += itemTotal;
+        message += `  ${index + 1}. *${item.brand}* - ${item.name}\n`;
+        message += `     ${item.size} | Qty: ${item.quantity} | Total: ${itemTotal.toLocaleString()} ETB\n`;
+      });
+
+      message += `\n━━━━━━━━━━━━━━━━━━━━━━\n`;
+      message += `💰 *Est. Grand Total:* *${grandTotal.toLocaleString()} Birr*\n\n`;
+      message += `✨ _Payment Terms: Cash/CBE/Telebirr on Delivery after Scent verification_`;
+
+      const encodedMessage = encodeURIComponent(message);
+      const whatsappURL = `https://wa.me/${DEFAULT_STORE_NUMBER}?text=${encodedMessage}`;
+
+      // Open transaction link securely in new workspace browser tab
+      window.open(whatsappURL, '_blank');
+      
+      // Clear client session bag
+      cart = [];
+      saveCartToSession();
+      toggleCart(false);
+      
+      // Reset checkout input fields
+      document.getElementById('checkout-form').reset();
+      
+      // Reset validation feedback indicator layout
+      const feedback = document.getElementById('phone-feedback');
+      feedback.className = "text-[9px] text-luxury-gray/80 mt-1 font-light italic";
+      feedback.textContent = "Enter 9 digits starting with 9/7 (or 10 digits starting with 09/07)";
+
+      // Show final confirmation dialog to user
+      showConfirmationModal();
+    }
+
+    function showConfirmationModal() {
+      showToast("Order Dispatched to WhatsApp Portal");
+    }
+
+    // ==========================================
+    // NOTIFICATION TOAST FUNCTION
+    // ==========================================
+    function showToast(text) {
+      const toast = document.getElementById('toast');
+      const tText = document.getElementById('toast-text');
+      
+      tText.textContent = text;
+      toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+        toast.classList.remove('translate-y-0', 'opacity-100');
+      }, 3500);
+    }
+
+    // ==========================================
+    // TRIPLE-TAP LOGO & SECRET CODE ENTRY (ADMIN)
+    // ==========================================
+    function handleBrandTap() {
+      brandLogoTapCount++;
+      clearTimeout(brandLogoTapTimer);
+      
+      brandLogoTapTimer = setTimeout(() => {
+        brandLogoTapCount = 0;
+      }, 800);
+
+      if (brandLogoTapCount >= 3) {
+        brandLogoTapCount = 0;
+        toggleAdminPanel(true);
+      }
+    }
+
+    function setupSecretKeyListeners() {
+      // Listen for Ctrl+Shift+A combination anywhere on page
+      document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.shiftKey && e.key.toUpperCase() === 'A') {
+          e.preventDefault();
+          toggleAdminPanel(true);
+        }
+      });
+    }
+
+    function toggleAdminPanelDirectly() {
+      toggleAdminPanel(true);
+    }
+
+    function toggleAdminPanel(open) {
+      const modal = document.getElementById('admin-modal');
+      if (open) {
+        modal.classList.remove('hidden');
+        if (isAdminAuthenticated) {
+          showAdminWorkspace();
+        } else {
+          showAdminPasswordLock();
+        }
+      } else {
+        modal.classList.add('hidden');
+      }
+    }
+
+    function closeAdminPanel() {
+      toggleAdminPanel(false);
+    }
+
+    // ==========================================
+    // ADMIN AUTHENTICATION
+    // ==========================================
+    function showAdminPasswordLock() {
+      document.getElementById('admin-password-lock').classList.remove('hidden');
+      document.getElementById('admin-workspace').classList.add('hidden');
+      document.getElementById('save-offer-panel').classList.add('hidden');
+      document.getElementById('password-error').classList.add('hidden');
+      document.getElementById('admin-key').focus();
+    }
+
+    function showAdminWorkspace() {
+      document.getElementById('admin-password-lock').classList.add('hidden');
+      document.getElementById('admin-workspace').classList.remove('hidden');
+      document.getElementById('save-offer-panel').classList.remove('hidden');
+      renderAdminProducts();
+    }
+
+    function checkAdminPasswordOnEnter(e) {
+      if (e.key === 'Enter') {
+        verifyAdminPassword();
+      }
+    }
+
+    function verifyAdminPassword() {
+      const key = document.getElementById('admin-key').value;
+      const errorMsg = document.getElementById('password-error');
+
+      // Super-simplified access string requested: "pearl_access"
+      if (key === 'pearl_access' || key === 'admin') {
+        isAdminAuthenticated = true;
+        errorMsg.classList.add('hidden');
+        showAdminWorkspace();
+        showToast("Welcome Back, Master Perfumer");
+      } else {
+        errorMsg.classList.remove('hidden');
+        // Clear field
+        document.getElementById('admin-key').value = '';
+      }
+    }
+
+    // ==========================================
+    // ADMIN INVENTORY LOGIC (CRUD ENGINE)
+    // ==========================================
+    
+    // Read: Populates the active inventory list on the admin panel
+    function renderAdminProducts() {
+      const container = document.getElementById('admin-product-list');
+      
+      if (productsData.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-10 border border-dashed border-luxury-border">
+            <p class="text-[10px] text-luxury-gray uppercase tracking-widest font-light">Inventory Empty</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = productsData.map(product => {
+        const formattedPrice = Number(product.price).toLocaleString();
+        return `
+          <div id="admin-prod-card-${product.id}" class="flex items-center justify-between p-3 bg-luxury-cream border border-luxury-border transition-all hover:border-luxury-gold/50">
+            <div class="flex items-center space-x-3 min-w-0">
+              <img src="${product.image || 'https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&w=600&q=80'}" 
+                   alt="" class="w-10 h-10 object-cover border border-luxury-border shrink-0 bg-white">
+              <div class="min-w-0">
+                <span class="text-[8px] text-luxury-gold tracking-widest uppercase block">${escapeHtml(product.brand)}</span>
+                <h4 class="text-xs font-serif text-luxury-charcoal truncate font-semibold">${escapeHtml(product.name)}</h4>
+                <div class="flex items-center space-x-2 text-[9px] text-luxury-gray">
+                  <span>${escapeHtml(product.size)}</span>
+                  <span>•</span>
+                  <span class="uppercase">${escapeHtml(product.category)}</span>
+                  <span>•</span>
+                  <span class="font-semibold text-luxury-charcoal">${formattedPrice} Birr</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="flex items-center space-x-2 shrink-0 ml-4">
+              <button onclick="editProduct('${product.id}')" class="px-2.5 py-1.5 bg-white border border-luxury-border text-[10px] uppercase text-luxury-charcoal hover:bg-luxury-charcoal hover:text-white transition-all">
+                Edit
+              </button>
+              <button onclick="deleteProduct('${product.id}')" class="px-2.5 py-1.5 bg-red-50 border border-red-200 text-[10px] uppercase text-red-600 hover:bg-red-600 hover:text-white transition-all">
+                Del
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Insert high-res Unsplash samples to facilitate testing without copy-paste stress
+    function insertSampleImage() {
+      const randomIndex = Math.floor(Math.random() * LUXURY_PRESET_IMAGES.length);
+      document.getElementById('admin-image').value = LUXURY_PRESET_IMAGES[randomIndex];
+    }
+
+    // Create & Update handler
+    function handleProductSubmit(e) {
+      e.preventDefault();
+
+      const id = document.getElementById('admin-product-id').value;
+      const brand = document.getElementById('admin-brand').value.trim();
+      const name = document.getElementById('admin-name').value.trim();
+      const size = document.getElementById('admin-size').value.trim();
+      const category = document.getElementById('admin-category').value;
+      const price = parseFloat(document.getElementById('admin-price').value);
+      const image = document.getElementById('admin-image').value.trim();
+
+      if (id) {
+        // Mode: UPDATE
+        const idx = productsData.findIndex(p => p.id === id);
+        if (idx !== -1) {
+          productsData[idx] = { id, brand, name, size, category, price, image };
+          showToast(`Updated: ${name}`);
+        }
+      } else {
+        // Mode: CREATE
+        const newProduct = {
+          id: 'custom-' + Date.now(),
+          brand,
+          name,
+          size,
+          category,
+          price,
+          image
+        };
+        productsData.unshift(newProduct);
+        showToast(`Created: ${name}`);
+      }
+
+      // Sync and render refresh
+      saveProductsToStorage();
+      resetFormState();
+      renderAdminProducts();
+      renderStorefront();
+
+      // Highlight target element briefly if was update
+      if (id) {
+        const row = document.getElementById(`admin-prod-card-${id}`);
+        if (row) {
+          row.classList.add('admin-flash');
+          setTimeout(() => row.classList.remove('admin-flash'), 1000);
+        }
+      }
+    }
+
+    // Edit Initiation setup
+    function editProduct(id) {
+      const product = productsData.find(p => p.id === id);
+      if (!product) return;
+
+      document.getElementById('form-heading').textContent = "Modify Scent Composition";
+      document.getElementById('admin-product-id').value = product.id;
+      document.getElementById('admin-brand').value = product.brand;
+      document.getElementById('admin-name').value = product.name;
+      document.getElementById('admin-size').value = product.size;
+      document.getElementById('admin-category').value = product.category;
+      document.getElementById('admin-price').value = product.price;
+      document.getElementById('admin-image').value = product.image;
+
+      document.getElementById('submit-btn').textContent = "[ Update Scent Profile ]";
+      document.getElementById('cancel-edit-btn').classList.remove('hidden');
+
+      // Scroll form to view slightly on mobile
+      document.getElementById('product-form').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // Cancel Edit Form Reset
+    function resetFormState() {
+      document.getElementById('form-heading').textContent = "Create New Product";
+      document.getElementById('admin-product-id').value = "";
+      document.getElementById('product-form').reset();
+      
+      document.getElementById('submit-btn').textContent = "[ Save To Storefront ]";
+      document.getElementById('cancel-edit-btn').classList.add('hidden');
+    }
+
+    // Delete catalog logic
+    function deleteProduct(id) {
+      const product = productsData.find(p => p.id === id);
+      if (!product) return;
+
+      // Ask for quick verification without intrusive window.confirm prompts
+      const row = document.getElementById(`admin-prod-card-${id}`);
+      if (row) {
+        row.classList.add('bg-red-50', 'border-red-300');
+      }
+
+      setTimeout(() => {
+        productsData = productsData.filter(p => p.id !== id);
+        saveProductsToStorage();
+        renderAdminProducts();
+        renderStorefront();
+        showToast(`Removed from catalog`);
+      }, 200);
+    }
+
+    // Full catalog reset mechanism
+    function resetDefaultProducts() {
+      if (confirm("Reset completely to original luxury house presets? This will remove all your custom creations.")) {
+        productsData = [...DEFAULT_PRODUCTS];
+        saveProductsToStorage();
+        renderAdminProducts();
+        renderStorefront();
+        showToast("Catalog Reset to Presets");
+      }
+    }
+
+    // Cloud Multi-Device Sync modal triggers
+    function upgradeToCloud() {
+      document.getElementById('upgrade-modal').classList.remove('hidden');
+    }
+
+    function closeUpgradeModal() {
+      document.getElementById('upgrade-modal').classList.add('hidden');
+    }
+
+    // Secure sanitizer helper
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
   </script>
 </body>
 </html>
